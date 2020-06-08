@@ -1,0 +1,1 @@
+// vue是用rollup编译的,rollup类似webpack，不过rollup只对js类的内容进行编译，所以更加的轻量，适合打包js库
