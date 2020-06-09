@@ -13,21 +13,13 @@ import {
   warn,
   noop,
   remove,
+  handleError,
   emptyObject,
-  validateProp,
-  invokeWithErrorHandling
+  validateProp
 } from '../util/index'
 
 export let activeInstance: any = null
 export let isUpdatingChildComponent: boolean = false
-
-export function setActiveInstance(vm: Component) {
-  const prevActiveInstance = activeInstance
-  activeInstance = vm
-  return () => {
-    activeInstance = prevActiveInstance
-  }
-}
 
 export function initLifecycle (vm: Component) {
   const options = vm.$options
@@ -60,7 +52,8 @@ export function lifecycleMixin (Vue: Class<Component>) {
     const vm: Component = this
     const prevEl = vm.$el
     const prevVnode = vm._vnode
-    const restoreActiveInstance = setActiveInstance(vm)
+    const prevActiveInstance = activeInstance
+    activeInstance = vm
     vm._vnode = vnode
     // Vue.prototype.__patch__ is injected in entry points
     // based on the rendering backend used.
@@ -71,7 +64,7 @@ export function lifecycleMixin (Vue: Class<Component>) {
       // updates
       vm.$el = vm.__patch__(prevVnode, vnode)
     }
-    restoreActiveInstance()
+    activeInstance = prevActiveInstance
     // update __vue__ reference
     if (prevEl) {
       prevEl.__vue__ = null
@@ -145,8 +138,14 @@ export function mountComponent (
 ): Component {
   vm.$el = el
   if (!vm.$options.render) {
+    /***
+     * 如果没有render函数，创建一个空的VNode
+     */
     vm.$options.render = createEmptyVNode
     if (process.env.NODE_ENV !== 'production') {
+      /***
+       * 一些错误情况，在没有compiler的情况下，不能使用template
+       */
       /* istanbul ignore if */
       if ((vm.$options.template && vm.$options.template.charAt(0) !== '#') ||
         vm.$options.el || el) {
@@ -164,10 +163,16 @@ export function mountComponent (
       }
     }
   }
+  /***
+   * 调用生命周期钩子
+   */
   callHook(vm, 'beforeMount')
 
   let updateComponent
   /* istanbul ignore if */
+  /***
+   * config.performance和mark是性能埋点功能，可以在浏览器开发工具的性能/时间线面板中启用对组件初始化、编译、渲染和打补丁的性能追踪
+   */
   if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
     updateComponent = () => {
       const name = vm._name
@@ -194,9 +199,12 @@ export function mountComponent (
   // we set this to vm._watcher inside the watcher's constructor
   // since the watcher's initial patch may call $forceUpdate (e.g. inside child
   // component's mounted hook), which relies on vm._watcher being already defined
+  /***
+   * 通过渲染watcher来触发updateComponent
+   */
   new Watcher(vm, updateComponent, noop, {
     before () {
-      if (vm._isMounted && !vm._isDestroyed) {
+      if (vm._isMounted) {
         callHook(vm, 'beforeUpdate')
       }
     }
@@ -224,26 +232,12 @@ export function updateChildComponent (
   }
 
   // determine whether component has slot children
-  // we need to do this before overwriting $options._renderChildren.
-
-  // check if there are dynamic scopedSlots (hand-written or compiled but with
-  // dynamic slot names). Static scoped slots compiled from template has the
-  // "$stable" marker.
-  const newScopedSlots = parentVnode.data.scopedSlots
-  const oldScopedSlots = vm.$scopedSlots
-  const hasDynamicScopedSlot = !!(
-    (newScopedSlots && !newScopedSlots.$stable) ||
-    (oldScopedSlots !== emptyObject && !oldScopedSlots.$stable) ||
-    (newScopedSlots && vm.$scopedSlots.$key !== newScopedSlots.$key)
-  )
-
-  // Any static slot children from the parent may have changed during parent's
-  // update. Dynamic scoped slots may also have changed. In such cases, a forced
-  // update is necessary to ensure correctness.
-  const needsForceUpdate = !!(
+  // we need to do this before overwriting $options._renderChildren
+  const hasChildren = !!(
     renderChildren ||               // has new static slots
     vm.$options._renderChildren ||  // has old static slots
-    hasDynamicScopedSlot
+    parentVnode.data.scopedSlots || // has new scoped slots
+    vm.$scopedSlots !== emptyObject // has old scoped slots
   )
 
   vm.$options._parentVnode = parentVnode
@@ -282,7 +276,7 @@ export function updateChildComponent (
   updateComponentListeners(vm, listeners, oldListeners)
 
   // resolve slots + force update if has children
-  if (needsForceUpdate) {
+  if (hasChildren) {
     vm.$slots = resolveSlots(renderChildren, parentVnode.context)
     vm.$forceUpdate()
   }
@@ -337,10 +331,13 @@ export function callHook (vm: Component, hook: string) {
   // #7573 disable dep collection when invoking lifecycle hooks
   pushTarget()
   const handlers = vm.$options[hook]
-  const info = `${hook} hook`
   if (handlers) {
     for (let i = 0, j = handlers.length; i < j; i++) {
-      invokeWithErrorHandling(handlers[i], vm, null, vm, info)
+      try {
+        handlers[i].call(vm)
+      } catch (e) {
+        handleError(e, vm, `${hook} hook`)
+      }
     }
   }
   if (vm._hasHookEvent) {

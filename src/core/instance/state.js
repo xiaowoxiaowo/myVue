@@ -2,7 +2,7 @@
 
 import config from '../config'
 import Watcher from '../observer/watcher'
-import Dep, { pushTarget, popTarget } from '../observer/dep'
+import { pushTarget, popTarget } from '../observer/dep'
 import { isUpdatingChildComponent } from './lifecycle'
 
 import {
@@ -34,7 +34,9 @@ const sharedPropertyDefinition = {
   get: noop,
   set: noop
 }
-
+/***
+ * 初始化vm.data的set和get
+ */
 export function proxy (target: Object, sourceKey: string, key: string) {
   sharedPropertyDefinition.get = function proxyGetter () {
     return this[sourceKey][key]
@@ -42,6 +44,9 @@ export function proxy (target: Object, sourceKey: string, key: string) {
   sharedPropertyDefinition.set = function proxySetter (val) {
     this[sourceKey][key] = val
   }
+  /***
+   * 初始化set和get,这里给vm加上了data属性，所以vue里可以直接通过this,data获取到data值
+   */
   Object.defineProperty(target, key, sharedPropertyDefinition)
 }
 
@@ -50,6 +55,9 @@ export function initState (vm: Component) {
   const opts = vm.$options
   if (opts.props) initProps(vm, opts.props)
   if (opts.methods) initMethods(vm, opts.methods)
+  /***
+   * data的初始化
+   */
   if (opts.data) {
     initData(vm)
   } else {
@@ -79,14 +87,14 @@ function initProps (vm: Component, propsOptions: Object) {
     if (process.env.NODE_ENV !== 'production') {
       const hyphenatedKey = hyphenate(key)
       if (isReservedAttribute(hyphenatedKey) ||
-          config.isReservedAttr(hyphenatedKey)) {
+        config.isReservedAttr(hyphenatedKey)) {
         warn(
           `"${hyphenatedKey}" is a reserved attribute and cannot be used as component prop.`,
           vm
         )
       }
       defineReactive(props, key, value, () => {
-        if (!isRoot && !isUpdatingChildComponent) {
+        if (vm.$parent && !isUpdatingChildComponent) {
           warn(
             `Avoid mutating a prop directly since the value will be ` +
             `overwritten whenever the parent component re-renders. ` +
@@ -111,6 +119,9 @@ function initProps (vm: Component, propsOptions: Object) {
 
 function initData (vm: Component) {
   let data = vm.$options.data
+  /***
+   * 判断data是否为一个函数
+   */
   data = vm._data = typeof data === 'function'
     ? getData(data, vm)
     : data || {}
@@ -130,6 +141,9 @@ function initData (vm: Component) {
   while (i--) {
     const key = keys[i]
     if (process.env.NODE_ENV !== 'production') {
+      /***
+       * 判断methods和data是否有重名属性
+       */
       if (methods && hasOwn(methods, key)) {
         warn(
           `Method "${key}" has already been defined as a data property.`,
@@ -137,6 +151,9 @@ function initData (vm: Component) {
         )
       }
     }
+    /***
+     * 判断props和data是否有重名属性
+     */
     if (props && hasOwn(props, key)) {
       process.env.NODE_ENV !== 'production' && warn(
         `The data property "${key}" is already declared as a prop. ` +
@@ -144,10 +161,16 @@ function initData (vm: Component) {
         vm
       )
     } else if (!isReserved(key)) {
+      /***
+       * 通过defineProperty来初始化vm.data的set和get
+       */
       proxy(vm, `_data`, key)
     }
   }
   // observe data
+  /***
+   * 让data进变成响应式依赖
+   */
   observe(data, true /* asRootData */)
 }
 
@@ -164,7 +187,7 @@ export function getData (data: Function, vm: Component): any {
   }
 }
 
-const computedWatcherOptions = { lazy: true }
+const computedWatcherOptions = { computed: true }
 
 function initComputed (vm: Component, computed: Object) {
   // $flow-disable-line
@@ -216,18 +239,20 @@ export function defineComputed (
   if (typeof userDef === 'function') {
     sharedPropertyDefinition.get = shouldCache
       ? createComputedGetter(key)
-      : createGetterInvoker(userDef)
+      : userDef
     sharedPropertyDefinition.set = noop
   } else {
     sharedPropertyDefinition.get = userDef.get
       ? shouldCache && userDef.cache !== false
-        ? createComputedGetter(key)
-        : createGetterInvoker(userDef.get)
+      ? createComputedGetter(key)
+      : userDef.get
       : noop
-    sharedPropertyDefinition.set = userDef.set || noop
+    sharedPropertyDefinition.set = userDef.set
+      ? userDef.set
+      : noop
   }
   if (process.env.NODE_ENV !== 'production' &&
-      sharedPropertyDefinition.set === noop) {
+    sharedPropertyDefinition.set === noop) {
     sharedPropertyDefinition.set = function () {
       warn(
         `Computed property "${key}" was assigned to but it has no setter.`,
@@ -242,20 +267,9 @@ function createComputedGetter (key) {
   return function computedGetter () {
     const watcher = this._computedWatchers && this._computedWatchers[key]
     if (watcher) {
-      if (watcher.dirty) {
-        watcher.evaluate()
-      }
-      if (Dep.target) {
-        watcher.depend()
-      }
-      return watcher.value
+      watcher.depend()
+      return watcher.evaluate()
     }
-  }
-}
-
-function createGetterInvoker(fn) {
-  return function computedGetter () {
-    return fn.call(this, this)
   }
 }
 
@@ -263,9 +277,9 @@ function initMethods (vm: Component, methods: Object) {
   const props = vm.$options.props
   for (const key in methods) {
     if (process.env.NODE_ENV !== 'production') {
-      if (typeof methods[key] !== 'function') {
+      if (methods[key] == null) {
         warn(
-          `Method "${key}" has type "${typeof methods[key]}" in the component definition. ` +
+          `Method "${key}" has an undefined value in the component definition. ` +
           `Did you reference the function correctly?`,
           vm
         )
@@ -283,7 +297,7 @@ function initMethods (vm: Component, methods: Object) {
         )
       }
     }
-    vm[key] = typeof methods[key] !== 'function' ? noop : bind(methods[key], vm)
+    vm[key] = methods[key] == null ? noop : bind(methods[key], vm)
   }
 }
 
@@ -325,7 +339,7 @@ export function stateMixin (Vue: Class<Component>) {
   const propsDef = {}
   propsDef.get = function () { return this._props }
   if (process.env.NODE_ENV !== 'production') {
-    dataDef.set = function () {
+    dataDef.set = function (newData: Object) {
       warn(
         'Avoid replacing instance root $data. ' +
         'Use nested data properties instead.',
@@ -346,7 +360,7 @@ export function stateMixin (Vue: Class<Component>) {
     expOrFn: string | Function,
     cb: any,
     options?: Object
-  ): Function {
+): Function {
     const vm: Component = this
     if (isPlainObject(cb)) {
       return createWatcher(vm, expOrFn, cb, options)
@@ -355,11 +369,7 @@ export function stateMixin (Vue: Class<Component>) {
     options.user = true
     const watcher = new Watcher(vm, expOrFn, cb, options)
     if (options.immediate) {
-      try {
-        cb.call(vm, watcher.value)
-      } catch (error) {
-        handleError(error, vm, `callback for immediate watcher "${watcher.expression}"`)
-      }
+      cb.call(vm, watcher.value)
     }
     return function unwatchFn () {
       watcher.teardown()

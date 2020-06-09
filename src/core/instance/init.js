@@ -35,6 +35,9 @@ export function initMixin (Vue: Class<Component>) {
       // internal component options needs special treatment.
       initInternalComponent(vm, options)
     } else {
+      /***
+       * 把传入的options加到vm.$options上，vue取值都用options来获取data，el等各种值
+       */
       vm.$options = mergeOptions(
         resolveConstructorOptions(vm.constructor),
         options || {},
@@ -49,11 +52,17 @@ export function initMixin (Vue: Class<Component>) {
     }
     // expose real self
     vm._self = vm
+    /***
+     * 各种vue内容的初始化
+     */
     initLifecycle(vm)
     initEvents(vm)
     initRender(vm)
     callHook(vm, 'beforeCreate')
     initInjections(vm) // resolve injections before data/props
+    /***
+     * props,methods,data,computed,watch的初始化
+     */
     initState(vm)
     initProvide(vm) // resolve provide after data/props
     callHook(vm, 'created')
@@ -64,7 +73,9 @@ export function initMixin (Vue: Class<Component>) {
       mark(endTag)
       measure(`vue ${vm._name} init`, startTag, endTag)
     }
-
+    /***
+     * 判断是否有el属性，有的话，把内容挂载到el的dom上
+     */
     if (vm.$options.el) {
       vm.$mount(vm.$options.el)
     }
@@ -117,12 +128,32 @@ export function resolveConstructorOptions (Ctor: Class<Component>) {
 function resolveModifiedOptions (Ctor: Class<Component>): ?Object {
   let modified
   const latest = Ctor.options
+  const extended = Ctor.extendOptions
   const sealed = Ctor.sealedOptions
   for (const key in latest) {
     if (latest[key] !== sealed[key]) {
       if (!modified) modified = {}
-      modified[key] = latest[key]
+      modified[key] = dedupe(latest[key], extended[key], sealed[key])
     }
   }
   return modified
+}
+
+function dedupe (latest, extended, sealed) {
+  // compare latest and sealed to ensure lifecycle hooks won't be duplicated
+  // between merges
+  if (Array.isArray(latest)) {
+    const res = []
+    sealed = Array.isArray(sealed) ? sealed : [sealed]
+    extended = Array.isArray(extended) ? extended : [extended]
+    for (let i = 0; i < latest.length; i++) {
+      // push original options and not sealed options to exclude duplicated options
+      if (extended.indexOf(latest[i]) >= 0 || sealed.indexOf(latest[i]) < 0) {
+        res.push(latest[i])
+      }
+    }
+    return res
+  } else {
+    return latest
+  }
 }
