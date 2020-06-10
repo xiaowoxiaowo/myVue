@@ -13,3 +13,9 @@
  * instance/init.js里，通过vm.$mount(vm.$options.el)挂载到页面dom中。
  * $mount定义在runtime/index.js, 带compiler的版本会在entry-runtime-with-compiler.js里对template进行编译，然后调用runtime/index.js的$mount方法，具体看代码注释
  */
+
+/***
+ * render
+ * vue的_render是一个私有方法，用来把实例渲染成一个虚拟Node，定义在core/instance/render.js中
+ * 在instance/lifecycle.js里的初始化里把_render方法添加到响应式依赖中，通过渲染watcher来触发updateComponent的_render方法
+ */
