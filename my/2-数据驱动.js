@@ -26,3 +26,8 @@
  * VNode需要经过create,diff,patch等过程才能映射到真实的DOM上
  */
 
+/***
+ * createElement
+ * vue中使用createElement方法来创建VNode，定义在vdom/create-element.js中
+ *
+ */

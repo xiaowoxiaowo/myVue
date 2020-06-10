@@ -18,6 +18,9 @@ import { isFalse, isTrue, isDef, isUndef, isPrimitive } from 'shared/util'
 export function simpleNormalizeChildren (children: any) {
   for (let i = 0; i < children.length; i++) {
     if (Array.isArray(children[i])) {
+      /***
+       * 将二维的数组扁平化
+       */
       return Array.prototype.concat.apply([], children)
     }
   }
@@ -30,6 +33,9 @@ export function simpleNormalizeChildren (children: any) {
 // is needed to cater to all possible types of children values.
 export function normalizeChildren (children: any): ?Array<VNode> {
   return isPrimitive(children)
+    /***
+     * createTextVNode创建一个纯文本的VNode
+     */
     ? [createTextVNode(children)]
     : Array.isArray(children)
       ? normalizeArrayChildren(children)
@@ -40,6 +46,9 @@ function isTextNode (node): boolean {
   return isDef(node) && isDef(node.text) && isFalse(node.isComment)
 }
 
+/***
+ * 数据处理，返回一个一维的VNode数组
+ */
 function normalizeArrayChildren (children: any, nestedIndex?: string): Array<VNode> {
   const res = []
   let i, c, lastIndex, last
@@ -50,6 +59,9 @@ function normalizeArrayChildren (children: any, nestedIndex?: string): Array<VNo
     last = res[lastIndex]
     //  nested
     if (Array.isArray(c)) {
+      /***
+       * 当子元素也是一个数组的时候，递归调用normalizeArrayChildren
+       */
       if (c.length > 0) {
         c = normalizeArrayChildren(c, `${nestedIndex || ''}_${i}`)
         // merge adjacent text nodes
@@ -57,16 +69,28 @@ function normalizeArrayChildren (children: any, nestedIndex?: string): Array<VNo
           res[lastIndex] = createTextVNode(last.text + (c[0]: any).text)
           c.shift()
         }
+        /***
+         * c是一个数组，通过apply扁平化数组
+         */
         res.push.apply(res, c)
       }
     } else if (isPrimitive(c)) {
+      /***
+       * 当子元素是一个基础类型
+       */
       if (isTextNode(last)) {
         // merge adjacent text nodes
         // this is necessary for SSR hydration because text nodes are
         // essentially merged when rendered to HTML strings
+        /***
+         * 当res最后一项也是纯文本类型的VNode，将两项合并
+         */
         res[lastIndex] = createTextVNode(last.text + c)
       } else if (c !== '') {
         // convert primitive to vnode
+        /***
+         * push纯文本类型的VNode
+         */
         res.push(createTextVNode(c))
       }
     } else {

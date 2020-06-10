@@ -33,6 +33,9 @@ export function createElement (
   normalizationType: any,
   alwaysNormalize: boolean
 ): VNode | Array<VNode> {
+  /***
+   * 判断是否有data参数
+   */
   if (Array.isArray(data) || isPrimitive(data)) {
     normalizationType = children
     children = data
@@ -41,6 +44,9 @@ export function createElement (
   if (isTrue(alwaysNormalize)) {
     normalizationType = ALWAYS_NORMALIZE
   }
+  /***
+   * 调用_createElement
+   */
   return _createElement(context, tag, data, children, normalizationType)
 }
 
@@ -51,6 +57,9 @@ export function _createElement (
   children?: any,
   normalizationType?: number
 ): VNode | Array<VNode> {
+  /***
+   * data不能是响应式的数据
+   */
   if (isDef(data) && isDef((data: any).__ob__)) {
     process.env.NODE_ENV !== 'production' && warn(
       `Avoid using observed data object as vnode data: ${JSON.stringify(data)}\n` +
@@ -60,6 +69,9 @@ export function _createElement (
     return createEmptyVNode()
   }
   // object syntax in v-bind
+  /***
+   * 这边都是些错误类型的判断
+   */
   if (isDef(data) && isDef(data.is)) {
     tag = data.is
   }
@@ -87,7 +99,13 @@ export function _createElement (
     data.scopedSlots = { default: children[0] }
     children.length = 0
   }
+  /***
+   * data不能是响应式的数据
+   */
   if (normalizationType === ALWAYS_NORMALIZE) {
+    /***
+     * normalizeChildren定义在vdom/helpers/normalize-children.js中，把children变成一个一维的VNode数组
+     */
     children = normalizeChildren(children)
   } else if (normalizationType === SIMPLE_NORMALIZE) {
     children = simpleNormalizeChildren(children)
@@ -96,6 +114,9 @@ export function _createElement (
   if (typeof tag === 'string') {
     let Ctor
     ns = (context.$vnode && context.$vnode.ns) || config.getTagNamespace(tag)
+    /***
+     * 判断是不是html的原生标签
+     */
     if (config.isReservedTag(tag)) {
       // platform built-in elements
       vnode = new VNode(
@@ -104,8 +125,14 @@ export function _createElement (
       )
     } else if (isDef(Ctor = resolveAsset(context.$options, 'components', tag))) {
       // component
+      /***
+       * 如果是组件
+       */
       vnode = createComponent(Ctor, data, context, children, tag)
     } else {
+      /***
+       * 不是html的原生标签
+       */
       // unknown or unlisted namespaced elements
       // check at runtime because it may get assigned a namespace when its
       // parent normalizes children
