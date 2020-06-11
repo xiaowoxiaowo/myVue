@@ -123,10 +123,15 @@ export function _createElement (
         config.parsePlatformTagName(tag), data, children,
         undefined, undefined, context
       )
+      /***
+       * 3.组件 - cteateComponent
+       * resolveAsset定义在core/util/options.js,对组件的格式化处理，比如testDemo可以写成test-demo
+       */
     } else if (isDef(Ctor = resolveAsset(context.$options, 'components', tag))) {
       // component
       /***
-       * 如果是组件
+       * 3.组件 - cteateComponent
+       * 返回一个组件的vnode
        */
       vnode = createComponent(Ctor, data, context, children, tag)
     } else {
@@ -143,6 +148,10 @@ export function _createElement (
     }
   } else {
     // direct component options / constructor
+    /***
+     * 3.组件 - cteateComponent
+     * 创建组件
+     */
     vnode = createComponent(tag, data, context, children)
   }
   if (Array.isArray(vnode)) {

@@ -98,6 +98,10 @@ const componentVNodeHooks = {
 
 const hooksToMerge = Object.keys(componentVNodeHooks)
 
+/***
+ * 3.组件 - cteateComponent
+ * createComponent定义
+ */
 export function createComponent (
   Ctor: Class<Component> | Function | Object | void,
   data: ?VNodeData,
@@ -108,10 +112,17 @@ export function createComponent (
   if (isUndef(Ctor)) {
     return
   }
-
+  /***
+   * 3.组件 - cteateComponent
+   * 在global-api/index.js里有定义Vue.options._base = Vue,在instance/init.js里会把options合并到$options
+   */
   const baseCtor = context.$options._base
 
   // plain options object: turn it into a constructor
+  /***
+   * 3.组件 - cteateComponent
+   * 使用基础 Vue 构造器，创建一个“子类”。参数是一个包含组件选项的对象,extend在global-api/extend.js里定义
+   */
   if (isObject(Ctor)) {
     Ctor = baseCtor.extend(Ctor)
   }
@@ -182,11 +193,19 @@ export function createComponent (
     }
   }
 
+  /***
+   * 3.组件 - cteateComponent
+   * 安装一些组件钩子
+   */
   // install component management hooks onto the placeholder node
   installComponentHooks(data)
 
   // return a placeholder vnode
   const name = Ctor.options.name || tag
+  /***
+   * 3.组件 - cteateComponent
+   * 生成一个组件的VNode，注意，组件VNode的children是空,componentOptions有相关的数据
+   */
   const vnode = new VNode(
     `vue-component-${Ctor.cid}${name ? `-${name}` : ''}`,
     data, undefined, undefined, undefined, context,
@@ -225,11 +244,19 @@ export function createComponentInstanceForVnode (
 
 function installComponentHooks (data: VNodeData) {
   const hooks = data.hook || (data.hook = {})
+  /***
+   * 3.组件 - cteateComponent
+   * 对hooksToMerge定义的钩子进行遍历
+   */
   for (let i = 0; i < hooksToMerge.length; i++) {
     const key = hooksToMerge[i]
     const existing = hooks[key]
     const toMerge = componentVNodeHooks[key]
     if (existing !== toMerge && !(existing && existing._merged)) {
+      /***
+       * 3.组件 - cteateComponent
+       * 两个函数都存在的话，依次执行。不然执行componentVNodeHooks里的钩子
+       */
       hooks[key] = existing ? mergeHook(toMerge, existing) : toMerge
     }
   }
