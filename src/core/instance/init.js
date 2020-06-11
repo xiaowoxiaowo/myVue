@@ -30,6 +30,10 @@ export function initMixin (Vue: Class<Component>) {
     vm._isVue = true
     // merge options
     if (options && options._isComponent) {
+      /***
+       * 3.组件 - patch
+       * 当初始化的是组件的时候，使用initInternalComponent这个方法去合并options
+       */
       // optimize internal component instantiation
       // since dynamic options merging is pretty slow, and none of the
       // internal component options needs special treatment.
@@ -61,6 +65,10 @@ export function initMixin (Vue: Class<Component>) {
     /***
      * 各种vue内容的初始化
      */
+    /***
+     * 3.组件 - patch
+     * 通过initLifecycle把子组件跟父组件建立关系
+     */
     initLifecycle(vm)
     initEvents(vm)
     initRender(vm)
@@ -82,6 +90,10 @@ export function initMixin (Vue: Class<Component>) {
     /***
      * 判断是否有el属性，有的话，把内容挂载到el的dom上
      */
+    /***
+     * 3.组件 - patch
+     * 组件是没有el了，所以不执行$mount
+     */
     if (vm.$options.el) {
       vm.$mount(vm.$options.el)
     }
@@ -91,6 +103,11 @@ export function initMixin (Vue: Class<Component>) {
 export function initInternalComponent (vm: Component, options: InternalComponentOptions) {
   const opts = vm.$options = Object.create(vm.constructor.options)
   // doing this because it's faster than dynamic enumeration.
+  /***
+   * 3.组件 - patch
+   * 这里的_parentVnode是组件钩子init里createComponentInstanceForVnode方法里定义的当前组件的vnode
+   * 这里的parent是传入的activeInstance，当做父组件的实例
+   */
   const parentVnode = options._parentVnode
   opts.parent = options.parent
   opts._parentVnode = parentVnode

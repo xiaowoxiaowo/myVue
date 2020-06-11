@@ -25,14 +25,26 @@ export function initLifecycle (vm: Component) {
   const options = vm.$options
 
   // locate first non-abstract parent
+  /***
+   * 3.组件 - patch
+   * 这里的parent就是之前传入的activeInstance，就是父组件的vm
+   */
   let parent = options.parent
   if (parent && !options.abstract) {
     while (parent.$options.abstract && parent.$parent) {
       parent = parent.$parent
     }
+    /***
+     * 3.组件 - patch
+     * 在父组件的$children里push一个子组件的vm
+     */
     parent.$children.push(vm)
   }
 
+  /***
+   * 3.组件 - patch
+   * 子组件与父组件建立关系
+   */
   vm.$parent = parent
   vm.$root = parent ? parent.$root : vm
 
@@ -57,7 +69,15 @@ export function lifecycleMixin (Vue: Class<Component>) {
     const prevEl = vm.$el
     const prevVnode = vm._vnode
     const prevActiveInstance = activeInstance
+    /***
+     * 2.数据驱动 - update
+     * 在这里定义activeInstance为当实例，在patch的时候，传入组件初始化当做父组件来创建父子关系
+     */
     activeInstance = vm
+    /***
+     * 3.组件 - patch
+     * 给_vnode赋值，_vnode是$vnode的子组件
+     */
     vm._vnode = vnode
     // Vue.prototype.__patch__ is injected in entry points
     // based on the rendering backend used.

@@ -34,6 +34,10 @@ import {
 
 // inline hooks to be invoked on component VNodes during patch
 const componentVNodeHooks = {
+  /***
+   * 3.组件 - patch
+   * 在patch.js的createComponent方法里运行init
+   */
   init (vnode: VNodeWithData, hydrating: boolean): ?boolean {
     if (
       vnode.componentInstance &&
@@ -44,10 +48,18 @@ const componentVNodeHooks = {
       const mountedNode: any = vnode // work around flow
       componentVNodeHooks.prepatch(mountedNode, mountedNode)
     } else {
+      /***
+       * 3.组件 - patch
+       * 通过createComponent创建的组件Vue子类来生成一个vm实例，在里面已经_init初始化完成了
+       */
       const child = vnode.componentInstance = createComponentInstanceForVnode(
         vnode,
         activeInstance
       )
+      /***
+       * 3.组件 - patch
+       * 手动调用$mount方法,创建一个子组件的渲染watcher，把组件的update方法作为回调函数
+       */
       child.$mount(hydrating ? vnode.elm : undefined, hydrating)
     }
   },
@@ -228,6 +240,10 @@ export function createComponentInstanceForVnode (
   vnode: any, // we know it's MountedComponentVNode but flow doesn't
   parent: any, // activeInstance in lifecycle state
 ): Component {
+  /***
+   * 3.组件 - patch
+   * 定义父的vnode和父的vm实例
+   */
   const options: InternalComponentOptions = {
     _isComponent: true,
     _parentVnode: vnode,
@@ -239,6 +255,10 @@ export function createComponentInstanceForVnode (
     options.render = inlineTemplate.render
     options.staticRenderFns = inlineTemplate.staticRenderFns
   }
+  /***
+   * 3.组件 - patch
+   * 这里的Ctor是之前extend出来的继承子类，跟一般的vue初始的差异看instance/init.js
+   */
   return new vnode.componentOptions.Ctor(options)
 }
 
