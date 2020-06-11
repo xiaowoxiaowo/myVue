@@ -50,6 +50,10 @@ export function initLifecycle (vm: Component) {
 export function lifecycleMixin (Vue: Class<Component>) {
   Vue.prototype._update = function (vnode: VNode, hydrating?: boolean) {
     const vm: Component = this
+    /***
+     * 2.数据驱动 - update
+     * 这些数据是视图更新时候用到的，首次渲染可以默认为空
+     */
     const prevEl = vm.$el
     const prevVnode = vm._vnode
     const prevActiveInstance = activeInstance
@@ -58,7 +62,15 @@ export function lifecycleMixin (Vue: Class<Component>) {
     // Vue.prototype.__patch__ is injected in entry points
     // based on the rendering backend used.
     if (!prevVnode) {
+      /***
+       * 2.数据驱动 - update
+       * 首次渲染
+       */
       // initial render
+      /***
+       * 2.数据驱动 - update
+       * __patch__方法定义在runtime/index.js
+       */
       vm.$el = vm.__patch__(vm.$el, vnode, hydrating, false /* removeOnly */)
     } else {
       // updates

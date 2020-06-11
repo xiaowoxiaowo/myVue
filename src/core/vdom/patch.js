@@ -66,13 +66,20 @@ function createKeyToOldIdx (children, beginIdx, endIdx) {
   }
   return map
 }
-
+/***
+ * 2.数据驱动 - update
+ * createPatchFunction定义
+ */
 export function createPatchFunction (backend) {
   let i, j
   const cbs = {}
 
   const { modules, nodeOps } = backend
 
+  /***
+   * 2.数据驱动 - update
+   * 给hooks钩子的不同阶段，push相关阶段需要的modules方法
+   */
   for (i = 0; i < hooks.length; ++i) {
     cbs[hooks[i]] = []
     for (j = 0; j < modules.length; ++j) {
@@ -162,9 +169,16 @@ export function createPatchFunction (backend) {
           )
         }
       }
-
+      /***
+       * 2.数据驱动 - update
+       * 首次渲染，vnode.ns是undefined
+       */
       vnode.elm = vnode.ns
         ? nodeOps.createElementNS(vnode.ns, tag)
+        /***
+         * 2.数据驱动 - update
+         * 通过tag标签创建一个dom元素
+         */
         : nodeOps.createElement(tag, vnode)
       setScope(vnode)
 
@@ -188,10 +202,19 @@ export function createPatchFunction (backend) {
           insert(parentElm, vnode.elm, refElm)
         }
       } else {
+        /***
+         * 2.数据驱动 - update
+         * 递归创建子节点，先创建子节点，然后把子节点通过appendChild移到父节点下面
+         * appendChild不但可以新增子元素，还会把原来位置的node元素移除，
+         */
         createChildren(vnode, children, insertedVnodeQueue)
         if (isDef(data)) {
           invokeCreateHooks(vnode, insertedVnodeQueue)
         }
+        /***
+         * 2.数据驱动 - update
+         * 插入节点，如果没有父级parentElm，不进行处理
+         */
         insert(parentElm, vnode.elm, refElm)
       }
 
@@ -287,9 +310,17 @@ export function createPatchFunction (backend) {
         checkDuplicateKeys(children)
       }
       for (let i = 0; i < children.length; ++i) {
+        /***
+         * 2.数据驱动 - update
+         * 递归调用createElm
+         */
         createElm(children[i], insertedVnodeQueue, vnode.elm, null, true, children, i)
       }
     } else if (isPrimitive(vnode.text)) {
+      /***
+       * 2.数据驱动 - update
+       * 生成真实的dom
+       */
       nodeOps.appendChild(vnode.elm, nodeOps.createTextNode(String(vnode.text)))
     }
   }
@@ -696,6 +727,10 @@ export function createPatchFunction (backend) {
       isInitialPatch = true
       createElm(vnode, insertedVnodeQueue)
     } else {
+      /***
+       * 2.数据驱动 - update
+       * 首次渲染运行这个判断
+       */
       const isRealElement = isDef(oldVnode.nodeType)
       if (!isRealElement && sameVnode(oldVnode, vnode)) {
         // patch existing root node
@@ -725,14 +760,26 @@ export function createPatchFunction (backend) {
           }
           // either not server-rendered, or hydration failed.
           // create an empty node and replace it
+          /***
+           * 2.数据驱动 - update
+           * 返回一个带tagName的VNode
+           */
           oldVnode = emptyNodeAt(oldVnode)
         }
 
         // replacing existing element
+        /***
+         * 2.数据驱动 - update
+         * 首次渲染,oldElm为我们自己例子中创建的div,parentElm为body
+         */
         const oldElm = oldVnode.elm
         const parentElm = nodeOps.parentNode(oldElm)
 
         // create new node
+        /***
+         * 2.数据驱动 - update
+         * 把VNode挂载到真实的dom上
+         */
         createElm(
           vnode,
           insertedVnodeQueue,
